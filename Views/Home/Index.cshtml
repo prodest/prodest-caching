@@ -1,0 +1,13 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center">
+    <h2 class="display-5">Prodest.Caching - Cache Distribuído com Redis</h2>
+    
+    <h4>Usuário em Cache: @(Model == null ? "Não foi encontrado registro em cache" : Model.Email + "-" + Model.Id)</h4>
+    
+    <a class="btn btn-primary" asp-action="CacheUser">Gerar Cache</a>
+    <a class="btn btn-secondary" asp-action="CacheRemove">Limpar Cache</a>
+
+</div>
