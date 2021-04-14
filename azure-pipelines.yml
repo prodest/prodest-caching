@@ -28,7 +28,6 @@ variables:
 
 stages:
 - stage: PreparacaoStage
-  dependsOn: BuildStage
   condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'),eq(variables['Build.SourceBranch'], 'refs/heads/prerelease'))
   jobs:
   - job: SetarShortGitHashJob
