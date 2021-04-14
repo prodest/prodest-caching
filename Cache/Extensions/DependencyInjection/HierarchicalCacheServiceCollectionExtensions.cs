@@ -14,18 +14,7 @@ namespace Prodest.Cache.Extensions.DependencyInjection
             if (redisConfiguration == null ) throw new ArgumentNullException(nameof(redisConfiguration));
 
             services.AddMemoryCache();
-
-            //services.AddStackExchangeRedisCache(options =>
-            //{
-            //    options.Configuration = redisConfiguration;
-            //});
-
-            //using Microsoft.Extensions.Caching.Redis 
-            //services.AddDistributedRedisCache(options =>
-            //{
-            //    options.Configuration = redisConfiguration;
-            //});
-
+       
             Action<HierarchicalCacheOptions> setupAction = options =>
             {
                 options.RedisConfiguration = redisConfiguration;
