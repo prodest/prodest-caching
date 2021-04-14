@@ -1,0 +1,115 @@
+resources:
+  repositories:
+  - repository: testes
+    type: git
+    name: DevopsTools/prodest-caching
+
+trigger:
+- main
+- prerelease
+- develop
+
+variables:
+- group: SonarQube
+- name: buildConfiguration
+  value: 'Release'
+- name: Major
+  value: '0'
+- name: Minor
+  value: '1'
+- name: PatchForPreRelease
+  value: '0'
+- name: TypeForPreRelease
+  value: ''
+- name: Versao
+  value: $[format('{0}.{1}', variables['Major'], variables['Minor'])]
+- name: disable.coverage.autogenerate
+  value: 'true'
+
+stages:
+- stage: PreparacaoStage
+  dependsOn: BuildStage
+  condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'),eq(variables['Build.SourceBranch'], 'refs/heads/prerelease'))
+  jobs:
+  - job: SetarShortGitHashJob
+    displayName: Setar Short GitHash
+    steps:
+      - script: |
+          set TempVar=$(Build.SourceVersion)
+          set ShortVar=%TempVar:~0,8%
+          echo '##vso[task.setvariable variable=ShortGitHash;isOutput=true]%ShortVar%
+        name: SetarShortGitHashStep
+  - job: SetarPatchForMain
+    dependsOn: SetarShortGitHashJob
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    displayName: Setar Patch For Main
+    variables:
+       shortGitHash: $[dependencies.SetarShortGitHashJob.outputs['SetarShortGitHashStep.ShortGitHash']]
+       patch: $[counter(variables['Versao'], 0)]
+    steps:
+      - script: |
+          echo $(shortGitHash)
+          echo $(patch)
+          echo $(Versao)
+          echo '##vso[task.setvariable variable=Patch;isOutput=true]$(patch)
+        name: SetVersaoMainStep
+  - job: SetarPatchForPreRelease
+    dependsOn: SetarShortGitHashJob
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/prerelease')
+    displayName: Setar Patch For Release
+    variables:
+      versionNumber: $[counter(format('{0}.{1}.{2}', variables['Versao'], variables['PatchForPreRelease'],variables['TypeForPreRelease']), 0)]
+      shortGitHash: $[dependencies.SetarShortGitHashJob.outputs['SetarShortGitHashStep.ShortGitHash']]
+    steps:
+      - script: |
+          echo '##vso[task.setvariable variable=Type]alpha
+        condition: eq(variables['TypeForPreRelease'], '')
+      - script: |
+          echo '##vso[task.setvariable variable=Type]$(TypeForPreRelease)
+        condition: ne(variables['TypeForPreRelease'], '')
+      - script: |
+           echo type = $(Type)
+           set TempVar=$(PatchForPreRelease)-$(Type)$(versionNumber)-$(shortGitHash)
+           echo %TempVar%
+           echo '##vso[task.setvariable variable=Patch;isOutput=true]%TempVar%
+        name: SetVersaoReleaseStep
+  - job: SetarVersaoAtual
+    dependsOn:
+    - SetarPatchForPreRelease
+    - SetarPatchForMain
+    condition: or(succeeded('SetarPatchForPreRelease'), succeeded('SetarPatchForMain'))
+    displayName: Setar Versão Atual
+    variables:
+       PatchTempMain: $[dependencies.SetarPatchForMain.outputs['SetVersaoMainStep.Patch']]
+       PatchTempRelease: $[dependencies.SetarPatchForPreRelease.outputs['SetVersaoReleaseStep.Patch']]
+    steps:
+      - script: |
+           echo $(Versao)
+           set TempVar=$(Versao).$(PatchTempMain)$(PatchTempRelease)
+           echo %TempVar%
+           echo '##vso[task.setvariable variable=VersaoAtual;isOutput=true]%TempVar%
+        name: SetarVersaoAtualStep
+
+- stage: PackAndPushStage
+  displayName: PackAndPushStage
+  dependsOn: PreparacaoStage
+  condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'),eq(variables['Build.SourceBranch'], 'refs/heads/prerelease'))
+  jobs:
+  - job: PackAndPushJob
+    variables:
+        VersaoAtual: $[stageDependencies.PreparacaoStage.SetarVersaoAtual.outputs['SetarVersaoAtualStep.VersaoAtual']]
+    steps:
+      - task: DotNetCoreCLI@2
+        inputs:
+          command: 'custom'
+          projects: '**/*.csproj'
+          custom: 'pack'
+          arguments: '--configuration $(buildConfiguration) -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(VersaoAtual)'
+        name: Pack
+      - task: NuGetCommand@2
+        inputs:
+          command: 'push'
+          packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+          nuGetFeedType: 'external'
+          publishFeedCredentials: 'NugetCaching'
+        name: Push
