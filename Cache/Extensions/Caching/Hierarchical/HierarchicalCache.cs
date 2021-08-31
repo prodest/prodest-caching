@@ -463,10 +463,7 @@ namespace Prodest.Cache.Extensions.Caching.Hierarchical
             try
             {
                 await ConnectAsync();
-                RedisValue redisValue = RedisValue.Null;
-                redisValue = await DistributedCache.StringGetAsync(key);
-                if (redisValue != RedisValue.Null)
-                    stringLength = redisValue.Length();
+                stringLength = await DistributedCache.StringLengthAsync(key);
             }
             catch (Exception)
             {
