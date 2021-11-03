@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>Prodest.Cache</AssemblyName>
     <RootNamespace>Prodest.Cache</RootNamespace>
     <Configurations>Release;Debug</Configurations>
