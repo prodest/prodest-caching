@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Prodest.Cache.Extensions.Caching.Hierarchical
 {
-    public sealed class HierarchicalCache : IHierarchicalCache, IDisposable
+    internal sealed class HierarchicalCache : IHierarchicalCache, IDisposable
     {
         private volatile ConnectionMultiplexer Connection;
 
