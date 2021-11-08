@@ -127,7 +127,7 @@ namespace Prodest.Cache.Extensions.Caching.Hierarchical
             return retorno;
         }
 
-        public async Task<T> GetAsync<T>(string key)
+        public async Task<T> GetAsync<T>(string key, TimeSpan? absoluteExpiration = null)
         {
             T retorno = default;
 
@@ -242,7 +242,7 @@ namespace Prodest.Cache.Extensions.Caching.Hierarchical
             }
         }
 
-     
+
 
         public async Task RemoveKeyAsync(string key)
         {
@@ -391,7 +391,7 @@ namespace Prodest.Cache.Extensions.Caching.Hierarchical
             {
             }
         }
-       
+
         private async Task DistributedCacheDelete(string key)
         {
             try
@@ -475,7 +475,7 @@ namespace Prodest.Cache.Extensions.Caching.Hierarchical
         #endregion
 
 
-        private async Task<T> GetInternalAsync<T>(string key)
+        private async Task<T> GetInternalAsync<T>(string key, TimeSpan? absoluteExpiration = null)
         {
             T cachedObject = default(T);
 
@@ -487,10 +487,10 @@ namespace Prodest.Cache.Extensions.Caching.Hierarchical
                     if (Options.UseDistributedCache)
                         cachedObject = await GetDistributedAsync<T>(key);
 
+                    //Se não informar um valor, seta 10 minutos de expiração para evitar que o memory cache fique diferente do Redis
                     if (cachedObject != null)
-                        MemoryCache.Set(key, cachedObject);
-                    else
-                        MemoryCache.Remove(key);
+                        MemoryCache.Set(key, cachedObject, absoluteExpiration ?? TimeSpan.FromMinutes(10));
+
                 }
             }
             else if (Options.UseDistributedCache)
